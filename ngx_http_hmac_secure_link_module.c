@@ -158,21 +158,12 @@ ngx_http_secure_link_variable(ngx_http_request_t *r,
                         sizeof("1970-09-28T12:00:00+06:00")-1, p);
 
         /* Try if p is UNIX timestamp*/
-        if (sscanf((char *)p, "%llu", &conv_timestamp) == 1) {
-            timestamp = (time_t)conv_timestamp;
-
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "secure link timestamp: \"%T\"", timestamp);
-        } else {
-            /* Parse timestamp in ISO8601 format */
-            if (sscanf((char *)p, "%4d-%02d-%02dT%02d:%02d:%02d%c%02i:%02i",
+        if (sscanf((char *)p, "%4d-%02d-%02dT%02d:%02d:%02d%c%02i:%02i",
                                    (ngx_tm_year_t *) &year, (ngx_tm_mon_t *) &month,
                                    (ngx_tm_mday_t *) &mday, (ngx_tm_hour_t *) &hour,
                                    (ngx_tm_min_t *) &min, (ngx_tm_sec_t *) &sec,
-                                   &gmtoff_sign, &gmtoff_hour, &gmtoff_min) < 9) {
-                goto not_found;
-            }
-
+                                   &gmtoff_sign, &gmtoff_hour, &gmtoff_min) == 9) {
+            
             /* Put February last because it has leap day */
             month -= 2;
             if (month <= 0) {
@@ -204,6 +195,16 @@ ngx_http_secure_link_variable(ngx_http_request_t *r,
 
             if (gmtoff_sign == '-') {
                 timestamp += gmtoff;
+            }
+
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                           "secure link timestamp: \"%T\"", timestamp);
+        } else {
+            /* Parse timestamp in ISO8601 format */
+            if (sscanf((char *)p, "%llu", &conv_timestamp) != 1) {
+                goto not_found;
+            } else {
+                timestamp = (time_t)conv_timestamp;
             }
 
             ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
